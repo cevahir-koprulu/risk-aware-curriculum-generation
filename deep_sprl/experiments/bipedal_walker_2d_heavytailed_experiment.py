@@ -46,11 +46,15 @@ def _kl_multivariatecauchy_multivariatecauchy(p, q):
     return kl
 
 class BipedalWalker2DHeavyTailedExperiment(AbstractExperiment):
-    TARGET_TYPE = "narrow"
-    TARGET_MEAN = np.array([1., 4.5])
+    TARGET_TYPE = "wide"
+    TARGET_MEAN = np.array([1.5, 3.0])
+    # TARGET_MEAN = np.array([1.5, 4.5])
+    # TARGET_MEAN = np.array([1.2, 4.5])
     TARGET_VARIANCES = {
         "narrow": np.square(np.diag([1e-4, 1e-4])),
-        "wide": np.square(np.diag([.5, .5])),
+        "wide": np.square(np.diag([.3, .5])),
+        # "wide": np.square(np.diag([.75, .75])),
+        # "wide": np.square(np.diag([.6, .75])),
     }
 
     # Also used in kl div fcn, but not from self
@@ -75,33 +79,33 @@ class BipedalWalker2DHeavyTailedExperiment(AbstractExperiment):
         return s
 
     INITIAL_MEAN = np.array([0., 6.])
-    INITIAL_VARIANCE = np.diag(np.square([.5, .5]))
+    INITIAL_VARIANCE = np.diag(np.square([.1, .1]))
 
     DIST_TYPE = "cauchy"  # "gaussian"
 
     STD_LOWER_BOUND = np.array([0.1, 0.1])
     KL_THRESHOLD = 8000.
-    KL_EPS = 0.5  # 0.25
-    DELTA = 15.  # 180  # 4.0  ### Mastered means return >= 230 (page 5 of teachDeepRL CoRL 2019)
+    KL_EPS = 1.5 # 1.0  # 0.5  # 0.25
+    DELTA = 120. # 180.  # 5.  # 15.  # 4.0  ### Mastered means return >= 230 (page 5 of teachDeepRL CoRL 2019)
     METRIC_EPS = 0.5
     EP_PER_UPDATE = 50
 
     # CEM
-    EP_PER_AUX_UPDATE = 25
-    REF_ALPHA_IN = 0.2  # initial reference alpha
-    REF_ALPHA = 0.2  # final reference alpha
-    REF_ALPHA_SCH = 20  # num steps for linear schedule to reach final reference alpha
+    EP_PER_AUX_UPDATE = 10 # 15  # 25  # 35
+    RALPH_IN = 1.0  # initial reference alpha
+    RALPH = 0.4 # 0.2  # final reference alpha
+    RALPH_SCH = 50  # num steps for linear schedule to reach final reference alpha
     INT_ALPHA = 0.5  # internal alpha
 
     def risk_level_scheduler(self, update_no):
-        # Set both to 1 for fixed ref_alpha
+        # Set both to 1 for fixed RALPH
         risk_level_schedule_factor = 1
 
-        alpha_cand = self.REF_ALPHA_IN - (self.REF_ALPHA_IN - self.REF_ALPHA) * update_no / (
-                self.REF_ALPHA_SCH * risk_level_schedule_factor)
-        return max(self.REF_ALPHA, alpha_cand)
+        alpha_cand = self.RALPH_IN - (self.RALPH_IN - self.RALPH) * update_no / (
+                self.RALPH_SCH * risk_level_schedule_factor)
+        return max(self.RALPH, alpha_cand)
 
-    NUM_ITER = 200  # 200
+    NUM_ITER = 300  # 200
     STEPS_PER_ITER = 100000
     DISCOUNT_FACTOR = 0.99  # 0.95
     LAM = 0.99
@@ -120,13 +124,13 @@ class BipedalWalker2DHeavyTailedExperiment(AbstractExperiment):
     VDS_EPOCHS = 3
     VDS_BATCHES = 20
 
-    AG_P_RAND = {Learner.PPO: 0.1, Learner.SAC: None}
-    AG_FIT_RATE = {Learner.PPO: 100, Learner.SAC: None}
-    AG_MAX_SIZE = {Learner.PPO: 500, Learner.SAC: None}
+    AG_P_RAND = {Learner.PPO: 0.1, Learner.SAC: 0.05}
+    AG_FIT_RATE = {Learner.PPO: 100, Learner.SAC: 150}
+    AG_MAX_SIZE = {Learner.PPO: 500, Learner.SAC: 500}
 
-    GG_NOISE_LEVEL = {Learner.PPO: 0.1, Learner.SAC: None}
-    GG_FIT_RATE = {Learner.PPO: 200, Learner.SAC: None}
-    GG_P_OLD = {Learner.PPO: 0.2, Learner.SAC: None}
+    GG_NOISE_LEVEL = {Learner.PPO: 0.1, Learner.SAC: 0.1}
+    GG_FIT_RATE = {Learner.PPO: 200, Learner.SAC: 100}
+    GG_P_OLD = {Learner.PPO: 0.2, Learner.SAC: 0.1}
 
     def __init__(self, base_log_dir, curriculum_name, learner_name, parameters, seed, device):
         super().__init__(base_log_dir, curriculum_name, learner_name, parameters, seed, device)
@@ -134,7 +138,11 @@ class BipedalWalker2DHeavyTailedExperiment(AbstractExperiment):
 
     def create_environment(self, evaluation=False):
         env = gym.make("ContextualBipedalWalker2D-v1")
-        if evaluation or self.curriculum.default():
+        print(f"EP_PER_AUX_UPDATE: {self.EP_PER_AUX_UPDATE}")
+        if evaluation:
+            teacher = DistributionSampler(self.target_sampler, self.LOWER_CONTEXT_BOUNDS, self.UPPER_CONTEXT_BOUNDS)
+            env = BaseWrapper(env, teacher, discount_factor=1.0, context_visible=True)
+        elif self.curriculum.default():
             teacher = DistributionSampler(self.target_sampler, self.LOWER_CONTEXT_BOUNDS, self.UPPER_CONTEXT_BOUNDS)
             env = BaseWrapper(env, teacher, self.DISCOUNT_FACTOR, context_visible=True)
         elif self.curriculum.default_with_cem():
@@ -160,13 +168,13 @@ class BipedalWalker2DHeavyTailedExperiment(AbstractExperiment):
             env = GoalGANWrapper(env, teacher, self.DISCOUNT_FACTOR, context_visible=True)
         elif self.curriculum.self_paced() or self.curriculum.wasserstein():
             teacher = self.create_self_paced_teacher(with_callback=False)
-            env = SelfPacedWrapper(env, teacher, self.DISCOUNT_FACTOR, episodes_per_update=self.EP_PER_UPDATE,
+            env = SelfPacedWrapper(env, teacher, discount_factor=1.0, episodes_per_update=self.EP_PER_UPDATE,
                                    context_visible=True)
         elif self.curriculum.self_paced_with_cem():
             teacher = self.create_self_paced_teacher(with_callback=False)
             aux_teacher = self.create_cem_teacher(cem_type=self.DIST_TYPE,
                                                   dist_params=(self.INITIAL_MEAN.copy(), self.INITIAL_VARIANCE.copy()))
-            env = SelfPacedWrapper(env, teacher, self.DISCOUNT_FACTOR,
+            env = SelfPacedWrapper(env, teacher, discount_factor=1.0,
                                    episodes_per_update=self.EP_PER_UPDATE-self.EP_PER_AUX_UPDATE,
                                    context_visible=True, episodes_per_aux_update=self.EP_PER_AUX_UPDATE,
                                    aux_teacher=aux_teacher)
@@ -223,7 +231,7 @@ class BipedalWalker2DHeavyTailedExperiment(AbstractExperiment):
                  contexts], axis=-1)
             env.teacher.initialize_teacher(env, interface, state_provider)
 
-        callback_params = {"learner": interface, "env_wrapper": env, "save_interval": 5,
+        callback_params = {"learner": interface, "env_wrapper": env, "save_interval": 10,  # 5,
                            "step_divider": self.STEPS_PER_ITER}
         return model, timesteps, callback_params
 
@@ -250,7 +258,7 @@ class BipedalWalker2DHeavyTailedExperiment(AbstractExperiment):
                                                            self.UPPER_CONTEXT_BOUNDS.copy()),
                                               batch_size=self.EP_PER_UPDATE,
                                               n_orig_per_batch=self.EP_PER_AUX_UPDATE,
-                                              ref_alpha=self.REF_ALPHA_IN, internal_alpha=self.INT_ALPHA,
+                                              ref_alpha=self.RALPH_IN, internal_alpha=self.INT_ALPHA,
                                               ref_mode='train', force_min_samples=True, w_clip=5)
         else:
             raise ValueError(f"Given CEM type, {cem_type}, is not in {list(CEM_AUX_TEACHERS.keys())}.")
@@ -259,7 +267,7 @@ class BipedalWalker2DHeavyTailedExperiment(AbstractExperiment):
         return f"bipedal_walker_2d_heavytailed_{self.TARGET_TYPE}"
 
     def evaluate_learner(self, path, eval_type=""):
-        num_context = 1
+        num_context = None
         num_run = 1
 
         model_load_path = os.path.join(path, "model.zip")
@@ -274,8 +282,8 @@ class BipedalWalker2DHeavyTailedExperiment(AbstractExperiment):
 
         num_succ_eps_per_c = np.zeros((num_context, 1))
         for i in range(num_context):
-            # context = eval_contexts[i, :]
-            context = np.array([0., 6.])
+            context = eval_contexts[i, :]
+            # context = np.array([0., 6.])
             for j in range(num_run):
                 self.eval_env.set_context(context)
                 obs = self.vec_eval_env.reset()
@@ -285,13 +293,13 @@ class BipedalWalker2DHeavyTailedExperiment(AbstractExperiment):
                 while not done:
                     action = model.step(obs, state=None, deterministic=False)
                     obs, rewards, done, infos = self.vec_eval_env.step(action)
-                    self.eval_env.render()
+                    # self.eval_env.render()
                     # success.append(infos[0]["success"]*1)
                     success.append(False)
                     r += rewards[0]
                 if any(success):
                     num_succ_eps_per_c[i, 0] += 1. / num_run
-                print(f"return: {r}")
+                # print(f"return: {r}")
         print(f"Successful Eps: {100 * np.mean(num_succ_eps_per_c)}%")
 
         disc_rewards = self.eval_env.get_reward_buffer()

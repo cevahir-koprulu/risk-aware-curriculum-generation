@@ -168,7 +168,9 @@ class PPOInterface(AgentInterface):
         self.grad_fn = []
 
     def estimate_value_internal(self, inputs):
-        return np.squeeze(self.learner.policy.predict_values(torch.from_numpy(inputs)).detach().numpy())
+        vals = self.learner.policy.predict_values(torch.from_numpy(inputs).to(
+            self.device))
+        return np.squeeze(vals.detach().cpu().numpy())
 
     def get_action(self, observations):
         flat_obs = np.reshape(observations, (-1, observations.shape[-1]))
@@ -177,7 +179,7 @@ class PPOInterface(AgentInterface):
 
     def mean_policy_std(self, cb_args, cb_kwargs):
         std_th = self.learner.policy.get_distribution(torch.zeros((1, self.obs_dim)).to(
-            self.device)).distribution.stddev[0, :]
+            self.device)).distribution.stddev[0]
         return np.mean(std_th.detach().cpu().numpy())
 
 
@@ -286,7 +288,7 @@ class ExperimentCallback:
                     text += ", %.2E"
                 text += "] "
                 self.format += text + text
-                # q_ref, q_internal, ref_alpha
+                # q_ref, q_internal, RALPH
                 for i in range(3):
                     self.format += "|  %.2E  "
 
@@ -296,7 +298,7 @@ class ExperimentCallback:
                 header += "|     Context mean     |      Context std     "
         if env_wrapper.aux_teacher is not None:
             if isinstance(self.env_wrapper.aux_teacher, CEM):
-                # q_ref, q_internal, ref_alpha
+                # q_ref, q_internal, RALPH
                 header += "|     AUX mean     |      AUX std     "\
                           "|     Reference q     |      Internal Q     |" \
                           "     Reference alpha     "
@@ -357,15 +359,15 @@ class ExperimentCallback:
 
 class AbstractExperiment(ABC):
     APPENDIX_KEYS = {"default": ["DISCOUNT_FACTOR", "STEPS_PER_ITER", "LAM"],
-                     CurriculumType.SelfPaced: ["DELTA", "KL_EPS", "DIST_TYPE"],
-                     CurriculumType.SelfPacedWithCEM: ["DELTA", "KL_EPS", "REF_ALPHA_IN", "REF_ALPHA",
-                                                       "REF_ALPHA_SCH", "DIST_TYPE"],
+                     CurriculumType.SelfPaced: ["DELTA", "KL_EPS", "DIST_TYPE", "INIT_VAR"],
+                     CurriculumType.SelfPacedWithCEM: ["DELTA", "KL_EPS", "RALPH_IN", "RALPH",
+                                                       "RALPH_SCH", "DIST_TYPE", "INIT_VAR"],
                      CurriculumType.Wasserstein: ["DELTA", "METRIC_EPS"],
                      CurriculumType.GoalGAN: ["GG_NOISE_LEVEL", "GG_FIT_RATE", "GG_P_OLD"],
                      CurriculumType.ALPGMM: ["AG_P_RAND", "AG_FIT_RATE", "AG_MAX_SIZE"],
                      CurriculumType.Random: [],
                      CurriculumType.Default: [],
-                     CurriculumType.DefaultWithCEM: ["REF_ALPHA_IN", "REF_ALPHA", "REF_ALPHA_SCH", "DIST_TYPE"],
+                     CurriculumType.DefaultWithCEM: ["RALPH_IN", "RALPH", "RALPH_SCH", "DIST_TYPE"],
                      CurriculumType.ACL: ["ACL_EPS", "ACL_ETA"],
                      CurriculumType.PLR: ["PLR_REPLAY_RATE", "PLR_BETA", "PLR_RHO"],
                      CurriculumType.VDS: ["VDS_NQ", "VDS_LR", "VDS_EPOCHS", "VDS_BATCHES"]}
@@ -418,7 +420,8 @@ class AbstractExperiment(ABC):
                              "ACL_ETA": float, "PLR_REPLAY_RATE": float, "PLR_BETA": float, "PLR_RHO": float,
                              "VDS_NQ": int, "VDS_LR": float, "VDS_EPOCHS": int, "VDS_BATCHES": int,
                              "DIST_TYPE": str, "TARGET_TYPE": str, "KL_EPS": float,
-                             "REF_ALPHA_IN": float, "REF_ALPHA": float, "REF_ALPHA_SCH": int,
+                             "RALPH_IN": float, "RALPH": float, "RALPH_SCH": int, 
+                             "EP_PER_UPDATE": int, "EP_PER_AUX_UPDATE": int, "INIT_VAR":float,
         }
         for key in sorted(self.parameters.keys()):
             if key not in allowed_overrides:
@@ -481,16 +484,14 @@ class AbstractExperiment(ABC):
 
         performance_files = {
             0: "performance",
-            1: "performance_rare",
-            2: "performance_rare_uniform",
-            3: "performance_hom",
+            1: "performance_hom",
         }
         for iteration_dir in sorted_iteration_dirs:
             iteration_log_dir = os.path.join(log_dir, iteration_dir)
             performance_log_dir = os.path.join(iteration_log_dir, f"{performance_files[eval_type]}.npy")
             eval_type_str = performance_files[eval_type][len("performance"):]
-            # if not os.path.exists(performance_log_dir):
-            if True:
+            if not os.path.exists(performance_log_dir):
+            # if True:
                 disc_rewards, eval_contexts, context_p, successful_eps = self.evaluate_learner(
                     path=iteration_log_dir,
                     eval_type=eval_type_str,

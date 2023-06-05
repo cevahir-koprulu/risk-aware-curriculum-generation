@@ -176,6 +176,9 @@ class BipedalWalkerContinuous(gym.Env, EzPickle):
         elif leg_size == "default":
             self.LEG_W = 8 / self.SCALE
             self.LEG_H = 34 / self.SCALE
+        elif leg_size == "long":
+            self.LEG_W = 10 / self.SCALE
+            self.LEG_H = 51 / self.SCALE
         else:
             print(leg_size + ' what ?!')
             raise NotImplementedError
@@ -544,14 +547,16 @@ class BipedalWalkerContinuous(gym.Env, EzPickle):
             reward -= self.torque_penalty * self.MOTORS_TORQUE * np.clip(np.abs(a), 0, 1)
             # normalized to about -50.0 using heuristic, more optimal agent should spend less
 
+        info = {"success": False}
         done = False
         if self.head_contact or pos[0] < 0:
             reward = -100
             done = True
         if pos[0] > (self.TERRAIN_LENGTH - self.TERRAIN_GRASS) * self.TERRAIN_STEP:
             done = True
+            info["success"] = True
 
-        return np.array(state), reward, done, {}
+        return np.array(state), reward, done, info
 
     def render(self, mode='human'):
         # self.scroll = 1

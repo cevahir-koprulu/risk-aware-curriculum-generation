@@ -4,3 +4,5 @@ __pycache__/
 logs*/
 figures*/
 eval_contexts*/
+run_*
+*.pdf

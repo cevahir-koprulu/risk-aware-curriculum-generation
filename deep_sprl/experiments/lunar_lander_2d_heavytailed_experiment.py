@@ -22,13 +22,6 @@ from pyro.distributions import MultivariateStudentT
 from torch.distributions.kl import register_kl
 from scipy.special import gamma
 
-from deep_sprl.environments.contextual_point_mass import ContextualPointMass
-
-def logsumexp(x):
-    xmax = np.max(x)
-    return np.log(np.sum(np.exp(x - xmax))) + xmax
-
-
 CEM_AUX_TEACHERS = {
     "gaussian": CEMGaussian,
     "cauchy": CEMCauchy,
@@ -36,11 +29,10 @@ CEM_AUX_TEACHERS = {
 
 # set_up_backend("torch", data_type="float32", torch_enable_cuda=False)
 
-
 @register_kl(MultivariateStudentT, MultivariateStudentT)
 def _kl_multivariatecauchy_multivariatecauchy(p, q):
-    lb = PointMass2DHeavyTailedExperiment.LOWER_CONTEXT_BOUNDS - PointMass2DHeavyTailedExperiment.EXT_CONTEXT_BOUNDS
-    ub = PointMass2DHeavyTailedExperiment.UPPER_CONTEXT_BOUNDS + PointMass2DHeavyTailedExperiment.EXT_CONTEXT_BOUNDS
+    lb = LunarLander2DHeavyTailedExperiment.LOWER_CONTEXT_BOUNDS - LunarLander2DHeavyTailedExperiment.EXT_CONTEXT_BOUNDS
+    ub = LunarLander2DHeavyTailedExperiment.UPPER_CONTEXT_BOUNDS + LunarLander2DHeavyTailedExperiment.EXT_CONTEXT_BOUNDS
     def _kl_inner(x):
         return torch.exp(p.log_prob(x))*(p.log_prob(x) - q.log_prob(x))
 
@@ -52,17 +44,18 @@ def _kl_multivariatecauchy_multivariatecauchy(p, q):
                       )
     return kl
 
-class PointMass2DHeavyTailedExperiment(AbstractExperiment):
+class LunarLander2DHeavyTailedExperiment(AbstractExperiment):
     TARGET_TYPE = "wide"
-    TARGET_MEAN = np.array([3.5, 0.5])
+    TARGET_MEAN = np.array([-7.0, 5.])
     TARGET_VARIANCES = {
         "narrow": np.square(np.diag([1e-4, 1e-4])),
-        "wide": np.square(np.diag([.7, .5])),
+        "wide": np.square(np.diag([1., 1.])),
     }
 
-    LOWER_CONTEXT_BOUNDS = np.array([-ContextualPointMass.ROOM_WIDTH/2, 0.5])
-    UPPER_CONTEXT_BOUNDS = np.array([ContextualPointMass.ROOM_WIDTH/2, ContextualPointMass.ROOM_WIDTH])
-    EXT_CONTEXT_BOUNDS = np.array([5., 5.])
+    LOWER_CONTEXT_BOUNDS = np.array([-12., 0.])
+    UPPER_CONTEXT_BOUNDS = np.array([-0.01, 10.])
+
+    EXT_CONTEXT_BOUNDS = np.array([0., 0.])
 
     def target_log_likelihood(self, cs):
         # Student's t distribution with DoF 1 is equivalent to a Cauchy distribution
@@ -80,23 +73,24 @@ class PointMass2DHeavyTailedExperiment(AbstractExperiment):
             s = np.array([s])
         return s
 
-    INITIAL_MEAN = np.array([0., 4.25])
-    INITIAL_VARIANCE = np.diag(np.square([2, 1.875]))
+    INIT_VAR = 0.5
+    INITIAL_MEAN = np.array([-3.7, 0.])
+    # INITIAL_VARIANCE = np.diag(np.square([.5, .5]))
 
     DIST_TYPE = "cauchy"  # "gaussian"
 
-    STD_LOWER_BOUND = np.array([0.2, 0.1875])
+    STD_LOWER_BOUND = np.array([0.1, 0.1])
     KL_THRESHOLD = 8000.
-    KL_EPS = 0.25
-    DELTA = 4.0 
+    KL_EPS = 0.025
+    DELTA = -100.
     METRIC_EPS = 0.5
-    EP_PER_UPDATE = 30
+    EP_PER_UPDATE = 40 
 
-    # CEMGaussian
-    EP_PER_AUX_UPDATE = 20  # 10  # 15
+    # CEM
+    EP_PER_AUX_UPDATE = 10 
     RALPH_IN = 1.0  # initial reference alpha
     RALPH = 0.2  # final reference alpha
-    RALPH_SCH = 20  # num steps for linear schedule to reach final reference alpha
+    RALPH_SCH = 80 # 40 # 20  # num steps for linear schedule to reach final reference alpha
     INT_ALPHA = 0.5  # internal alpha
 
     def risk_level_scheduler(self, update_no):
@@ -107,10 +101,10 @@ class PointMass2DHeavyTailedExperiment(AbstractExperiment):
                 self.RALPH_SCH * risk_level_schedule_factor)
         return max(self.RALPH, alpha_cand)
 
-    NUM_ITER = 300 
-    STEPS_PER_ITER = 6144
-    DISCOUNT_FACTOR = 0.95
-    LAM = 0.99
+    NUM_ITER = 250 
+    STEPS_PER_ITER = 10240 
+    DISCOUNT_FACTOR = 0.99 
+    LAM = 0.99 
 
     # ACL Parameters [found after search over [0.05, 0.1, 0.2] x [0.01, 0.025, 0.05]]
     ACL_EPS = 0.2
@@ -118,29 +112,33 @@ class PointMass2DHeavyTailedExperiment(AbstractExperiment):
 
     PLR_REPLAY_RATE = 0.85
     PLR_BUFFER_SIZE = 100
-    PLR_BETA = 0.45
-    PLR_RHO = 0.15
+    PLR_BETA = 0.15
+    PLR_RHO = 0.45
 
     VDS_NQ = 5
     VDS_LR = 1e-3
     VDS_EPOCHS = 3
-    VDS_BATCHES = 20
+    VDS_BATCHES = 40
 
-    AG_P_RAND = {Learner.PPO: 0.1, Learner.SAC: None}
-    AG_FIT_RATE = {Learner.PPO: 100, Learner.SAC: None}
-    AG_MAX_SIZE = {Learner.PPO: 500, Learner.SAC: None}
+    AG_P_RAND = {Learner.PPO: 0.1, Learner.SAC: 0.1}
+    AG_FIT_RATE = {Learner.PPO: 100, Learner.SAC: 50}
+    AG_MAX_SIZE = {Learner.PPO: 500, Learner.SAC: 500}
 
-    GG_NOISE_LEVEL = {Learner.PPO: 0.1, Learner.SAC: None}
-    GG_FIT_RATE = {Learner.PPO: 200, Learner.SAC: None}
-    GG_P_OLD = {Learner.PPO: 0.2, Learner.SAC: None}
+    GG_NOISE_LEVEL = {Learner.PPO: 0.1, Learner.SAC: 0.05}
+    GG_FIT_RATE = {Learner.PPO: 200, Learner.SAC: 200}
+    GG_P_OLD = {Learner.PPO: 0.2, Learner.SAC: 0.1}
 
     def __init__(self, base_log_dir, curriculum_name, learner_name, parameters, seed, device):
         super().__init__(base_log_dir, curriculum_name, learner_name, parameters, seed, device)
         self.eval_env, self.vec_eval_env = self.create_environment(evaluation=True)
 
     def create_environment(self, evaluation=False):
-        env = gym.make("ContextualPointMass2D-v1")
-        if evaluation or self.curriculum.default():
+        env = gym.make("ContextualLunarLander2D-v1")
+        print(f"EP_PER_AUX_UPDATE: {self.EP_PER_AUX_UPDATE}")
+        if evaluation:
+            teacher = DistributionSampler(self.target_sampler, self.LOWER_CONTEXT_BOUNDS, self.UPPER_CONTEXT_BOUNDS)
+            env = BaseWrapper(env, teacher, discount_factor=self.DISCOUNT_FACTOR, context_visible=True)
+        elif self.curriculum.default():
             teacher = DistributionSampler(self.target_sampler, self.LOWER_CONTEXT_BOUNDS, self.UPPER_CONTEXT_BOUNDS)
             env = BaseWrapper(env, teacher, self.DISCOUNT_FACTOR, context_visible=True)
         elif self.curriculum.default_with_cem():
@@ -158,7 +156,7 @@ class PointMass2DHeavyTailedExperiment(AbstractExperiment):
                              max_size=self.AG_MAX_SIZE[self.learner])
             env = ALPGMMWrapper(env, teacher, self.DISCOUNT_FACTOR, context_visible=True)
         elif self.curriculum.goal_gan():
-            samples = np.random.uniform(self.LOWER_CONTEXT_BOUNDS, self.UPPER_CONTEXT_BOUNDS, size=(1000, 2))
+            samples = np.random.uniform(self.LOWER_CONTEXT_BOUNDS, self.UPPER_CONTEXT_BOUNDS, size=(1000, self.LOWER_CONTEXT_BOUNDS.shape[0]))
             teacher = GoalGAN(self.LOWER_CONTEXT_BOUNDS.copy(), self.UPPER_CONTEXT_BOUNDS.copy(),
                               state_noise_level=self.GG_NOISE_LEVEL[self.learner], success_distance_threshold=0.01,
                               update_size=self.GG_FIT_RATE[self.learner], n_rollouts=2, goid_lb=0.25, goid_ub=0.75,
@@ -166,13 +164,13 @@ class PointMass2DHeavyTailedExperiment(AbstractExperiment):
             env = GoalGANWrapper(env, teacher, self.DISCOUNT_FACTOR, context_visible=True)
         elif self.curriculum.self_paced() or self.curriculum.wasserstein():
             teacher = self.create_self_paced_teacher(with_callback=False)
-            env = SelfPacedWrapper(env, teacher, self.DISCOUNT_FACTOR, episodes_per_update=self.EP_PER_UPDATE,
+            env = SelfPacedWrapper(env, teacher, discount_factor=self.DISCOUNT_FACTOR, episodes_per_update=self.EP_PER_UPDATE,
                                    context_visible=True)
         elif self.curriculum.self_paced_with_cem():
             teacher = self.create_self_paced_teacher(with_callback=False)
             aux_teacher = self.create_cem_teacher(cem_type=self.DIST_TYPE,
-                                                  dist_params=(self.INITIAL_MEAN.copy(), self.INITIAL_VARIANCE.copy()))
-            env = SelfPacedWrapper(env, teacher, self.DISCOUNT_FACTOR,
+                                                  dist_params=(self.INITIAL_MEAN.copy(), np.diag(np.square([self.INIT_VAR, self.INIT_VAR]))))
+            env = SelfPacedWrapper(env, teacher, discount_factor=self.DISCOUNT_FACTOR,
                                    episodes_per_update=self.EP_PER_UPDATE-self.EP_PER_AUX_UPDATE,
                                    context_visible=True, episodes_per_aux_update=self.EP_PER_AUX_UPDATE,
                                    aux_teacher=aux_teacher)
@@ -204,10 +202,19 @@ class PointMass2DHeavyTailedExperiment(AbstractExperiment):
 
     def create_learner_params(self):
         return dict(common=dict(gamma=self.DISCOUNT_FACTOR, seed=self.seed, verbose=0, device=self.device,
-                                policy_kwargs=dict(net_arch=[128, 128, 128], activation_fn=torch.nn.Tanh)),
-                    ppo=dict(n_steps=self.STEPS_PER_ITER, gae_lambda=self.LAM, batch_size=128),
-                    sac=dict(learning_rate=3e-4, buffer_size=10000, learning_starts=500, batch_size=64,
-                             train_freq=5, target_entropy="auto"))
+                                policy_kwargs=dict(net_arch=[64, 64], 
+                                activation_fn=torch.nn.Tanh,
+                                )),
+                    ppo=dict(learning_rate=3e-4,
+                                n_steps=10240, 
+                                n_epochs=4, 
+                                gae_lambda=self.LAM, 
+                                batch_size=64,
+                                ent_coef=0.0,
+                    ),
+                    sac=dict(learning_rate=3e-4, buffer_size=200000, learning_starts=2000, batch_size=64,
+                               train_freq=5, target_entropy="auto")
+                    )
 
     def create_experiment(self):
         timesteps = self.NUM_ITER * self.STEPS_PER_ITER
@@ -219,12 +226,13 @@ class PointMass2DHeavyTailedExperiment(AbstractExperiment):
             env.learner = interface
 
         if isinstance(env, VDSWrapper):
+            print(env.reset()[None, :])
             state_provider = lambda contexts: np.concatenate(
-                [np.repeat(np.array([0., 0., -3., 0.])[None, :], contexts.shape[0], axis=0),
+                [np.repeat(env.reset()[None, :-self.LOWER_CONTEXT_BOUNDS.shape[0]], contexts.shape[0], axis=0),
                  contexts], axis=-1)
             env.teacher.initialize_teacher(env, interface, state_provider)
 
-        callback_params = {"learner": interface, "env_wrapper": env, "save_interval": 5,
+        callback_params = {"learner": interface, "env_wrapper": env, "save_interval": 10,  # 5,
                            "step_divider": self.STEPS_PER_ITER}
         return model, timesteps, callback_params
 
@@ -232,11 +240,11 @@ class PointMass2DHeavyTailedExperiment(AbstractExperiment):
         bounds = (self.LOWER_CONTEXT_BOUNDS.copy(), self.UPPER_CONTEXT_BOUNDS.copy())
         if self.curriculum.self_paced() or self.curriculum.self_paced_with_cem():
             return SelfPacedTeacherV2(self.target_log_likelihood, self.target_sampler, self.INITIAL_MEAN.copy(),
-                                      self.INITIAL_VARIANCE.copy(), bounds, self.DELTA, max_kl=self.KL_EPS,
+                                      np.diag(np.square([self.INIT_VAR, self.INIT_VAR])), bounds, self.DELTA, max_kl=self.KL_EPS,
                                       std_lower_bound=self.STD_LOWER_BOUND.copy(), kl_threshold=self.KL_THRESHOLD,
                                       dist_type=self.DIST_TYPE, ext_bounds=self.EXT_CONTEXT_BOUNDS)
         else:
-            init_samples = np.random.uniform(self.LOWER_CONTEXT_BOUNDS, self.UPPER_CONTEXT_BOUNDS, size=(200, 2))
+            init_samples = np.random.uniform(self.LOWER_CONTEXT_BOUNDS, self.UPPER_CONTEXT_BOUNDS, size=(200, self.LOWER_CONTEXT_BOUNDS.shape[0]))
             return CurrOT(bounds, init_samples, self.target_sampler, self.DELTA, self.METRIC_EPS, self.EP_PER_UPDATE,
                           wb_max_reuse=1)
 
@@ -257,7 +265,7 @@ class PointMass2DHeavyTailedExperiment(AbstractExperiment):
             raise ValueError(f"Given CEM type, {cem_type}, is not in {list(CEM_AUX_TEACHERS.keys())}.")
 
     def get_env_name(self):
-        return f"point_mass_2d_heavytailed_{self.TARGET_TYPE}"
+        return f"lunar_lander_2d_heavytailed_{self.TARGET_TYPE}"
 
     def evaluate_learner(self, path, eval_type=""):
         num_context = None
@@ -281,10 +289,12 @@ class PointMass2DHeavyTailedExperiment(AbstractExperiment):
                 obs = self.vec_eval_env.reset()
                 done = False
                 success = []
+                r = 0.
                 while not done:
                     action = model.step(obs, state=None, deterministic=False)
                     obs, rewards, done, infos = self.vec_eval_env.step(action)
                     success.append(infos[0]["success"]*1)
+                    r += rewards[0]
                 if any(success):
                     num_succ_eps_per_c[i, 0] += 1. / num_run
         print(f"Successful Eps: {100 * np.mean(num_succ_eps_per_c)}%")
@@ -295,3 +305,4 @@ class PointMass2DHeavyTailedExperiment(AbstractExperiment):
             ave_disc_rewards.append(np.average(disc_rewards[j * num_run:(j + 1) * num_run]))
         return ave_disc_rewards, eval_contexts[:num_context, :], \
                np.exp(self.target_log_likelihood(eval_contexts[:num_context, :])), num_succ_eps_per_c
+

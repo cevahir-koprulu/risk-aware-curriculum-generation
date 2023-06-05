@@ -17,6 +17,8 @@ from deep_sprl.teachers.vds import VDS, VDSWrapper
 from deep_sprl.teachers.util import Subsampler
 from scipy.stats import multivariate_normal
 
+from deep_sprl.environments.contextual_point_mass import ContextualPointMass
+
 
 def logsumexp(x):
     xmax = np.max(x)
@@ -31,14 +33,14 @@ CEM_AUX_TEACHERS = {
 
 class PointMass2DExperiment(AbstractExperiment):
     TARGET_TYPE = "narrow"
-    TARGET_MEAN = np.array([3., 0.5])
+    TARGET_MEAN = np.array([ContextualPointMass.ROOM_WIDTH*0.3125, 0.5])  # *0.375 for pos 3. with width 8.
     TARGET_VARIANCES = {
         "narrow": np.square(np.diag([1e-4, 1e-4])),
-        "wide": np.square(np.diag([.5, .5])),
+        "wide": np.square(np.diag([1., 1.])),  # .5 for width 8.
     }
 
-    LOWER_CONTEXT_BOUNDS = np.array([-4., 0.5])
-    UPPER_CONTEXT_BOUNDS = np.array([4., 8.])
+    LOWER_CONTEXT_BOUNDS = np.array([-ContextualPointMass.ROOM_WIDTH/2, 0.5])
+    UPPER_CONTEXT_BOUNDS = np.array([ContextualPointMass.ROOM_WIDTH/2, ContextualPointMass.ROOM_WIDTH])
     EXT_CONTEXT_BOUNDS = np.array([5., 5.])
 
     def target_log_likelihood(self, cs):
@@ -64,21 +66,21 @@ class PointMass2DExperiment(AbstractExperiment):
 
     # CEMGaussian
     EP_PER_AUX_UPDATE = 20
-    REF_ALPHA_IN = 0.2  # initial reference alpha
-    REF_ALPHA = 0.2  # final reference alpha
-    REF_ALPHA_SCH = 20  # num steps for linear schedule to reach final reference alpha
+    RALPH_IN = 0.2  # initial reference alpha
+    RALPH = 0.2  # final reference alpha
+    RALPH_SCH = 20  # num steps for linear schedule to reach final reference alpha
     INT_ALPHA = 0.5  # internal alpha
 
     def risk_level_scheduler(self, update_no):
         # Set both to 1 for fixed ref_alpha
         risk_level_schedule_factor = 1
 
-        alpha_cand = self.REF_ALPHA_IN - (self.REF_ALPHA_IN - self.REF_ALPHA) * update_no / (
-                self.REF_ALPHA_SCH * risk_level_schedule_factor)
-        return max(self.REF_ALPHA, alpha_cand)
+        alpha_cand = self.RALPH_IN - (self.RALPH_IN - self.RALPH) * update_no / (
+                self.RALPH_SCH * risk_level_schedule_factor)
+        return max(self.RALPH, alpha_cand)
 
     NUM_ITER = 400  # 200
-    STEPS_PER_ITER = 4096  # 1024  # 2048  # 4096
+    STEPS_PER_ITER = 8192  # 4096  # 1024  # 2048  # 4096
     DISCOUNT_FACTOR = 0.95
     LAM = 0.99
 
@@ -220,7 +222,7 @@ class PointMass2DExperiment(AbstractExperiment):
                                                            self.UPPER_CONTEXT_BOUNDS.copy()),
                                               batch_size=self.EP_PER_UPDATE,
                                               n_orig_per_batch=self.EP_PER_AUX_UPDATE,
-                                              ref_alpha=self.REF_ALPHA_IN, internal_alpha=self.INT_ALPHA,
+                                              ref_alpha=self.RALPH_IN, internal_alpha=self.INT_ALPHA,
                                               ref_mode='train', force_min_samples=True, w_clip=5)
         else:
             raise ValueError(f"Given CEM type, {cem_type}, is not in {list(CEM_AUX_TEACHERS.keys())}.")

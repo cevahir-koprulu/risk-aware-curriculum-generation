@@ -90,7 +90,7 @@ class GoalGAN(AbstractTeacher):
                     del self.pending_contexts[context_key]
 
         if len(self.contexts) >= self.update_size:
-            labels = np.array(self.labels, dtype=np.float)[:, None]
+            labels = np.array(self.labels, dtype=float)[:, None]
 
             self.outer_iter += 1
             self.ready2save = True

@@ -6,17 +6,17 @@ from deep_sprl.util.viewer import Viewer
 
 
 class ContextualPointMass(Env):
+    ROOM_WIDTH = 14.  # 12.  # 20.  # 16.
 
     def __init__(self, context=np.array([0., 2., 2.])):
         self.action_space = spaces.Box(np.array([-10., -10.]), np.array([10., 10.]))
-        self.observation_space = spaces.Box(np.array([-4., -np.inf, -4., -np.inf]),
-                                            np.array([4., np.inf, 4., np.inf]))
-
+        self.observation_space = spaces.Box(np.array([-self.ROOM_WIDTH/2, -np.inf, -4., -np.inf]),
+                                            np.array([self.ROOM_WIDTH/2, np.inf, 4., np.inf]))
         self._state = None
         self._goal_state = np.array([0., 0., -3., 0.])
         self.context = context
         self._dt = 0.01
-        self._viewer = Viewer(8, 8, background=(255, 255, 255))
+        self._viewer = Viewer(self.ROOM_WIDTH, 8, background=(255, 255, 255))
 
     def reset(self):
         self._state = np.array([0., 0., 3., 0.])
@@ -59,19 +59,22 @@ class ContextualPointMass(Env):
         self._state = np.copy(new_state)
 
         info = {"success": np.linalg.norm(self._goal_state[0::2] - new_state[0::2]) < 0.25}
-
-        return new_state, np.exp(-0.6 * np.linalg.norm(self._goal_state[0::2] - new_state[0::2])), crash, info
+        r_coeff = 0.6
+        return new_state, np.exp(-r_coeff * np.linalg.norm(self._goal_state[0::2] - new_state[0::2])), crash, info
 
     def render(self, mode='human'):
-        pos = self.context[0] + 4.
+        pos = self.context[0] + self.ROOM_WIDTH/2
         width = self.context[1]
-        self._viewer.line(np.array([0., 4.]), np.array([np.clip(pos - 0.5 * width, 0., 8.), 4.]), color=(0, 0, 0),
+        self._viewer.line(np.array([0., 4.]), np.array([np.clip(pos - 0.5 * width, 0., self.ROOM_WIDTH), 4.]),
+                          color=(0, 0, 0),
                           width=0.2)
-        self._viewer.line(np.array([np.clip(pos + 0.5 * width, 0., 8, ), 4.]), np.array([8., 4.]), color=(0, 0, 0),
-                          width=0.2)
+        self._viewer.line(np.array([np.clip(pos + 0.5 * width, 0., self.ROOM_WIDTH, ), 4.]),
+                          np.array([self.ROOM_WIDTH, 4.]), color=(0, 0, 0), width=0.2)
 
-        self._viewer.line(np.array([3.9, 0.9]), np.array([4.1, 1.1]), color=(255, 0, 0), width=0.1)
-        self._viewer.line(np.array([4.1, 0.9]), np.array([3.9, 1.1]), color=(255, 0, 0), width=0.1)
+        self._viewer.line(np.array([self.ROOM_WIDTH/2-0.1, 0.9]), np.array([self.ROOM_WIDTH/2+0.1, 1.1]),
+                          color=(255, 0, 0), width=0.1)
+        self._viewer.line(np.array([self.ROOM_WIDTH/2+0.1, 0.9]), np.array([self.ROOM_WIDTH/2-0.1, 1.1]),
+                          color=(255, 0, 0), width=0.1)
 
-        self._viewer.circle(self._state[0::2] + np.array([4., 4.]), 0.1, color=(0, 0, 0))
+        self._viewer.circle(self._state[0::2] + np.array([self.ROOM_WIDTH/2, 4.]), 0.1, color=(0, 0, 0))
         self._viewer.display(self._dt)

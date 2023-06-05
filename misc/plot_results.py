@@ -23,15 +23,17 @@ def get_results(base_dir, iterations, get_success=False, alpha=0.2):
             results = np.load(perf_file)
             disc_rewards = results[:, 1]
             expected.append(np.mean(disc_rewards))
-            cvar.append(np.quantile(disc_rewards, q=alpha))
+            # q_rew = np.quantile(disc_rewards, q=alpha)
+            # cvar.append(np.mean(disc_rewards[disc_rewards <= q_rew]))
 
             if get_success:
                 successful_eps = results[:, -1]
                 success.append(np.mean(successful_eps))
-                success_cvar.append(np.quantile(successful_eps, q=alpha))
+                # q_success = np.quantile(successful_eps, q=alpha)
+                # success_cvar.append(np.mean(success[success <= q_success]))
 
         else:
-            print(f"No evaluation data found: {os.path.join(base_dir, 'iteration-0', 'performance.npy')}")
+            print(f"No evaluation data found: {perf_file}")
             expected = []
             success = []
             break
@@ -129,15 +131,15 @@ def plot_results(base_log_dir, num_updates_per_iteration, seeds, env, setting, a
 
             expected.append(expected_seed)
             cvar.append(cvar_seed)
-            # if "self_paced" in algorithm:
-            if False:
+            if "self_paced" in algorithm:
+            # if False:
                 dist_stats_seed = get_dist_stats(
                     base_dir=base_dir,
                     iterations=iterations,
                     context_dim=context_dim)
                 dist_stats.append(dist_stats_seed)
-            # if "cem" in algorithm:
-            if False:
+            if "cem" in algorithm:
+            # if False:
                 aux_dist_stats_seed = get_aux_dist_stats(
                     base_dir=base_dir,
                     iterations=iterations,
@@ -151,8 +153,8 @@ def plot_results(base_log_dir, num_updates_per_iteration, seeds, env, setting, a
         expected_mid = np.median(expected, axis=0)
         expected_qlow = np.quantile(expected, 0.25, axis=0)
         expected_qhigh = np.quantile(expected, 0.75, axis=0)
-        # expected_low = np.min(expected, axis=0)
-        # expected_high = np.max(expected, axis=0)
+        expected_low = np.min(expected, axis=0)
+        expected_high = np.max(expected, axis=0)
         # expected_mid = np.mean(expected, axis=0)
         # expected_std = np.std(expected, axis=0)
         # expected_qlow = expected_mid-expected_std
@@ -169,8 +171,8 @@ def plot_results(base_log_dir, num_updates_per_iteration, seeds, env, setting, a
         # cvar_qlow = cvar_mid-cvar_std
         # cvar_qhigh = cvar_mid+cvar_std
 
-        # if "self_paced" in algorithm:
-        if False:
+        if "self_paced" in algorithm:
+        # if False:
             dist_stats = np.array(dist_stats)
             dist_stats = np.swapaxes(dist_stats, 1, 2)
             dist_stats = np.swapaxes(dist_stats, 0, 1)
@@ -190,8 +192,8 @@ def plot_results(base_log_dir, num_updates_per_iteration, seeds, env, setting, a
                                 ls="--", marker="x")
                 axes[ax_i].fill_between(iterations_step, dist_stats_low[context_dim+ax_i, :],
                                         dist_stats_high[context_dim+ax_i, :], color=color, alpha=0.5, ls="--")
-        # if "cem" in algorithm:
-        if False:
+        if "cem" in algorithm:
+        # if False:
             aux_dist_stats = np.array(aux_dist_stats)
             aux_dist_stats = np.swapaxes(aux_dist_stats, 1, 2)
             aux_dist_stats = np.swapaxes(aux_dist_stats, 0, 1)
@@ -215,17 +217,17 @@ def plot_results(base_log_dir, num_updates_per_iteration, seeds, env, setting, a
                       # marker="^",
                       )
         axes[context_dim].fill_between(iterations_step, expected_qlow, expected_qhigh, color=color, alpha=0.4)
-        # axes[context_dim].fill_between(iterations_step, expected_low, expected_high, color=color, alpha=0.2)
+        axes[context_dim].fill_between(iterations_step, expected_low, expected_high, color=color, alpha=0.2)
 
-        axes[context_dim+1].plot(iterations_step, cvar_mid, color=color, linewidth=2.0, label=f"{label}")
-        axes[context_dim+1].fill_between(iterations_step, cvar_qlow, cvar_qhigh, color=color, alpha=0.4)
+        # axes[context_dim+1].plot(iterations_step, cvar_mid, color=color, linewidth=2.0, label=f"{label}")
+        # axes[context_dim+1].fill_between(iterations_step, cvar_qlow, cvar_qhigh, color=color, alpha=0.4)
         # axes[context_dim+1].fill_between(iterations_step, cvar_low, cvar_high, color=color, alpha=0.2)
 
         if plot_success:
             success = np.array(success)
             success_mid = np.median(success, axis=0)
-            # success_low = np.min(success, axis=0)
-            # success_high = np.max(success, axis=0)
+            success_low = np.min(success, axis=0)
+            success_high = np.max(success, axis=0)
             success_qlow = np.quantile(success, 0.25, axis=0)
             success_qhigh = np.quantile(success, 0.75, axis=0)
 
@@ -233,20 +235,20 @@ def plot_results(base_log_dir, num_updates_per_iteration, seeds, env, setting, a
                           # marker="^",
                           )
             axes[-2].fill_between(iterations_step, success_qlow, success_qhigh, color=color, alpha=0.4)
-            # axes[-2].fill_between(iterations_step, success_low, success_high, color=color, alpha=0.2)
+            axes[-2].fill_between(iterations_step, success_low, success_high, color=color, alpha=0.2)
 
-            success_cvar = np.array(success_cvar)
-            success_cvar_mid = np.median(success_cvar, axis=0)
-            # success_cvar_low = np.min(success_cvar, axis=0)
-            # success_cvar_high = np.max(success_cvar, axis=0)
-            success_cvar_qlow = np.quantile(success_cvar, 0.25, axis=0)
-            success_cvar_qhigh = np.quantile(success_cvar, 0.75, axis=0)
+            # success_cvar = np.array(success_cvar)
+            # success_cvar_mid = np.median(success_cvar, axis=0)
+            # # success_cvar_low = np.min(success_cvar, axis=0)
+            # # success_cvar_high = np.max(success_cvar, axis=0)
+            # success_cvar_qlow = np.quantile(success_cvar, 0.25, axis=0)
+            # success_cvar_qhigh = np.quantile(success_cvar, 0.75, axis=0)
 
-            axes[-1].plot(iterations_step, success_cvar_mid, color=color, linewidth=2.0, label=f"{label}",
-                          # marker="^",
-                          )
-            axes[-1].fill_between(iterations_step, success_cvar_qlow, success_cvar_qhigh, color=color, alpha=0.4)
-            # axes[-1].fill_between(iterations_step, success_low, success_high, color=color, alpha=0.2)
+            # axes[-1].plot(iterations_step, success_cvar_mid, color=color, linewidth=2.0, label=f"{label}",
+            #               # marker="^",
+            #               )
+            # axes[-1].fill_between(iterations_step, success_cvar_qlow, success_cvar_qhigh, color=color, alpha=0.4)
+            # # axes[-1].fill_between(iterations_step, success_low, success_high, color=color, alpha=0.2)
 
     markers = [".", "x"]
     linestyles = ["-", "--"]
@@ -271,7 +273,7 @@ def plot_results(base_log_dir, num_updates_per_iteration, seeds, env, setting, a
         num_alg += 1
         colors.append(algorithms[cur_algo]["color"])
         labels.append(algorithms[cur_algo]["label"])
-        if "cem" in cur_algo:
+        if "cem" in algorithms[cur_algo]["algorithm"]:
             colors.append(algorithms[cur_algo]["aux_color"])
             labels.append(algorithms[cur_algo]["label"]+"_aux")
             num_alg += 1
@@ -290,22 +292,123 @@ def plot_results(base_log_dir, num_updates_per_iteration, seeds, env, setting, a
         if cur_algo_i < len(algorithms)-1:
             figname += "_vs_"
 
-    print(f"{Path(os.getcwd()).parent}\\figures\\{env}_{figname}{figname_extra}.pdf")
-    plt.savefig(f"{Path(os.getcwd()).parent}\\figures\\{env}_{figname}{figname_extra}.pdf", dpi=500,
+    print(f"{Path(os.getcwd()).parent}/figures/{env}_{figname}{figname_extra}.pdf")
+    plt.savefig(f"{Path(os.getcwd()).parent}/figures/{env}_{figname}{figname_extra}.pdf", dpi=500,
                 bbox_inches='tight', bbox_extra_artists=(lgd,))
 
 
 def main():
-    base_log_dir = f"{Path(os.getcwd()).parent}\\logs"
-    num_updates_per_iteration = 5
-    seeds = [str(i) for i in range(1, 11)]
+    base_log_dir = f"{Path(os.getcwd()).parent}/logs"
+    num_updates_per_iteration = 10
+    seeds = [str(i) for i in range(1, 7)]
+    # seeds = [1,2,3,5,6]
     target_type = "wide"
-    env = f"point_mass_2d_heavytailed_{target_type}"
-    figname_extra = "_alpha=0.2"
-    plot_success = False
+    env = f"lunar_lander_2d_heavytailed_{target_type}"
+    figname_extra = f"_KL=.025_D=-100_UAI_{seeds}"
+    plot_success = True
     alpha = 0.2
 
     algorithms = {
+        "lunar_lander_2d_heavytailed_wide":{
+            # "SPDL": {
+            #     "algorithm": "self_paced",
+            #     "label": "SPDL_I=0.5",
+            #     "model": "ppo_DELTA=-100.0_DIST_TYPE=cauchy_KL_EPS=0.025",
+            #     "color": "blue",
+            #     "aux_color": "",
+            # },
+            # "R": {
+            #     "algorithm": "self_paced_with_cem",
+            #     "label": "RACGEN_I=.5",
+            #     "model": "ppo_DELTA=-100.0_DIST_TYPE=cauchy_KL_EPS=0.025_RALPH=0.2_RALPH_IN=1.0_RALPH_SCH=80",
+            #     "color": "red",
+            #     "aux_color": "green",
+            # },
+            # "R2": {
+            #     "algorithm": "self_paced_with_cem",
+            #     "label": "RACGEN_I=.1",
+            #     "model": "ppo_DELTA=-100.0_DIST_TYPE=cauchy_INIT_VAR=0.1_KL_EPS=0.025_RALPH=0.2_RALPH_IN=1.0_RALPH_SCH=80",
+            #     "color": "lightblue",
+            #     "aux_color": "orange",
+            # },
+            # "R3": {
+            #     "algorithm": "self_paced_with_cem",
+            #     "label": "RACGEN_I=.1_S=120",
+            #     "model": "ppo_DELTA=-100.0_DIST_TYPE=cauchy_INIT_VAR=0.1_KL_EPS=0.025_RALPH=0.2_RALPH_IN=1.0_RALPH_SCH=120",
+            #     "color": "blue",
+            #     "aux_color": "gold",
+            # },
+            # "R4": {
+            #     "algorithm": "self_paced_with_cem",
+            #     "label": "RACGEN_I=.5_S=120",
+            #     "model": "ppo_DELTA=-100.0_DIST_TYPE=cauchy_INIT_VAR=0.5_KL_EPS=0.025_RALPH=0.2_RALPH_IN=1.0_RALPH_SCH=120",
+            #     "color": "maroon",
+            #     "aux_color": "violet",
+            # },
+            "R5": {
+                "algorithm": "self_paced_with_cem",
+                "label": "RACGEN_I=.25_S=80",
+                "model": "ppo_DELTA=-100.0_DIST_TYPE=cauchy_INIT_VAR=0.25_KL_EPS=0.025_RALPH=0.2_RALPH_IN=1.0_RALPH_SCH=80",
+                "color": "red",
+                "aux_color": "green",
+            },
+            # "R6": {
+            #     "algorithm": "self_paced_with_cem",
+            #     "label": "RACGEN_I=.25_S=120",
+            #     "model": "ppo_DELTA=-100.0_DIST_TYPE=cauchy_INIT_VAR=0.25_KL_EPS=0.025_RALPH=0.2_RALPH_IN=1.0_RALPH_SCH=120",
+            #     "color": "lawngreen",
+            #     "aux_color": "plum",
+            # },
+            "Def": {
+                "algorithm": "default",
+                "label": "Default",
+                "model": "ppo",
+                "color": "cyan",
+                "aux_color": "magenta",
+            },
+            "DEF-CEM": {
+                "algorithm": "default_with_cem",
+                "label": "Default-CEM",
+                "model": "ppo_DIST_TYPE=cauchy_RALPH=0.2_RALPH_IN=1.0_RALPH_SCH=80",
+                "color": "blue",
+                "aux_color": "gold",
+            },
+            # "CURROT": {
+            #     "algorithm": "wasserstein",
+            #     "label": "CURROT",
+            #     "model": "ppo_DELTA=4.0_METRIC_EPS=0.5",
+            #     "color": "green",
+            #     "aux_color": "",
+            # },
+            # "GoalGAN": {
+            #     "algorithm": "goal_gan",
+            #     "label": "GoalGAN",
+            #     "model": "ppo_GG_FIT_RATE=200_GG_NOISE_LEVEL=0.1_GG_P_OLD=0.2",
+            #     "color": "orange",
+            #     "aux_color": "",
+            # },
+            # "ALP-GMM": {
+            #     "algorithm": "alp_gmm",
+            #     "label": "ALP-GMM",
+            #     "model": "ppo_AG_FIT_RATE=100_AG_MAX_SIZE=500_AG_P_RAND=0.1",
+            #     "color": "lawngreen",
+            #     "aux_color": "",
+            # },
+            # "PLR": {
+            #     "algorithm": "plr",
+            #     "label": "PLR",
+            #     "model": "ppo_PLR_BETA=0.15_PLR_REPLAY_RATE=0.85_PLR_RHO=0.45",
+            #     "color": "plum",
+            #     "aux_color": "",
+            # },
+            # "VDS": {
+            #     "algorithm": "vds",
+            #     "label": "VDS",
+            #     "model": "ppo_VDS_BATCHES=40_VDS_EPOCHS=3_VDS_LR=0.001_VDS_NQ=5",
+            #     "color": "violet",
+            #     "aux_color": "",
+            # },
+        },
         "point_mass_2d_heavytailed_wide": {
             "SPDL": {
                 "algorithm": "self_paced",
@@ -393,66 +496,61 @@ def main():
             },
 
         },
-        "point_mass_2d_heavytailed_narrow": {
-            "self_paced": {
-                "algorithm": "self_paced",
-                "label": "self_paced",
-                "model": "ppo_DELTA=4.0_DIST_TYPE=cauchy_KL_EPS=0.25",
-                "color": "blue",
-                "aux_color": "",
-            },
-
-            "self_paced_with_cem": {
-                "algorithm": "self_paced_with_cem",
-                "label": "self_paced_with_cem",
-                "model": "ppo_DELTA=4.0_DIST_TYPE=cauchy_INTERNAL_ALPHA=0.5_KL_EPS=0.25_REF_ALPHA=0.2",
-                "color": "red",
-                "aux_color": "green",
-            },
-
-            "default": {
-                "algorithm": "default",
-                "label": "default",
-                "model": "ppo",
-                "color": "magenta",
-                "aux_color": "orange",
-            },
-        },
-        "point_mass_2d_wide": {
-            "self_paced": {
-                "algorithm": "self_paced",
-                "label": "self_paced",
-                "model": "ppo_DELTA=4.0_KL_EPS=0.25",
-                "color": "blue",
-                "aux_color": "",
-            },
-
-            "self_paced_with_cem": {
-                "algorithm": "self_paced_with_cem",
-                "label": "self_paced_with_cem",
-                "model": "ppo_DELTA=4.0_INTERNAL_ALPHA=0.5_KL_EPS=0.25_REF_ALPHA=0.2",
-                "color": "red",
-                "aux_color": "green",
-            },
-            "default": {
-                "algorithm": "default",
-                "label": "default",
-                "model": "ppo",
-                "color": "magenta",
-                "aux_color": "orange",
-            },
-
-            "default_with_cem": {
-                "algorithm": "default_with_cem",
-                "label": "default_with_cem",
-                "model": "ppo_INTERNAL_ALPHA=0.5_REF_ALPHA=0.2",
-                "color": "cyan",
-                "aux_color": "brown",
-            },
-        }
     }
 
     settings = {
+        "lunar_lander_2d_heavytailed":
+            {
+                "context_dim": 2,
+                "num_iters": 250,
+                "steps_per_iter": 10000,
+                "fontsize": 12,
+                "figsize": (5 * 2, 2.5 * (2 + plot_success)),
+                "grid_shape": (2 + plot_success, 2),
+                "bbox_to_anchor": (.5, 1.25),
+                "axes_info": {
+                    "ylabel": ['Param-1: Gravity',
+                               'Param-2: Wind Power',
+                               'Expected discounted return',
+                               'CVaR of discounted return',
+                               'Expected rate of success',
+                               'CVaR of rate of succes',
+                               ],
+                    "ylim": [[-13., 1.],
+                             [-1., 11.],
+                             [-200, 100.],
+                             [-200, 100.],
+                             [-0.05, 1.05],
+                             [-0.05, 1.05],
+                             ],
+                    },
+            },
+        "bipedal_walker_2d_heavytailed":
+            {
+                "context_dim": 2,
+                "num_iters": 300,
+                "steps_per_iter": 100000,
+                "fontsize": 12,
+                "figsize": (5 * 2, 2.5 * (2 + plot_success)),
+                "grid_shape": (2 + plot_success, 2),
+                "bbox_to_anchor": (.5, 1.25),
+                "axes_info": {
+                    "ylabel": ['Param-1: Stump Height',
+                               'Param-2: Stump Spacing',
+                               'Expected discounted return',
+                               'CVaR of discounted return',
+                               'Expected rate of success',
+                               'CVaR of rate of succes',
+                               ],
+                    "ylim": [[-1.0, 3.],
+                             [-0.1, 7.],
+                             [-200, 200.],
+                             [-200, 200.],
+                             [-0.05, 1.05],
+                             [-0.05, 1.05],
+                             ],
+                    },
+            },
         "point_mass_2d_heavytailed":
             {
                 "context_dim": 2,

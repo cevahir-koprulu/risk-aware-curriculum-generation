@@ -25,6 +25,13 @@ def get_torch_dist(dist_type=None):
         raise ValueError(f"Given dist_type={dist_type} is not in {list(TORCH_DIST_DICT.keys())}.")
 
 
+class FooResult:
+    def __init__(self, fun, x, message) -> None:
+        self.fun = fun
+        self.x = x
+        self.message = message
+
+
 class AbstractSelfPacedTeacher:
 
     def __init__(self, init_mean, flat_init_chol, target_log_likelihood, target_sampler, max_kl, context_bounds,
@@ -175,6 +182,7 @@ class SelfPacedTeacherV2(AbstractTeacher, AbstractSelfPacedTeacher):
 
         if self.kl_threshold is not None and self.target_context_kl() > self.kl_threshold:
             # Define the variance constraint as bounds
+            print("KL to target is greater than threshold.")
             cones = np.ones_like(self.context_dist.get_weights())
             lb = -np.inf * cones.copy()
             lb[self.context_dim: 2 * self.context_dim] = np.log(self.std_lower_bound)
@@ -254,6 +262,8 @@ class SelfPacedTeacherV2(AbstractTeacher, AbstractSelfPacedTeacher):
                 pickle.dump((self.context_dist.get_weights(), contexts, values), f)
             print("Exception occurred during optimization! Storing state and re-raising!")
             raise e
+            # old_dist_weight = self.context_dist.get_weights().copy()
+            # res = FooResult(fun=objective(old_dist_weight)[0], x=old_dist_weight, message="Exception occurred during optimization!")
 
         # If it was not a success, but the objective value was improved and the bounds are still valid, we still
         # use the result
