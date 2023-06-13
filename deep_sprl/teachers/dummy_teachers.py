@@ -11,7 +11,7 @@ class DistributionSampler(AbstractTeacher):
         self.dim = self.sample_func(n=1).shape[1]
 
         n_samples = int(1e6)
-        samples_not_ok = np.ones(n_samples, dtype=np.bool)
+        samples_not_ok = np.ones(n_samples, dtype=bool)
         samples = np.zeros((n_samples, self.dim))
         while np.any(samples_not_ok):
             n_new_samples = np.sum(samples_not_ok)

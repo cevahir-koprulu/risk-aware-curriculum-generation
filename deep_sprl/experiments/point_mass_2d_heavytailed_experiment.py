@@ -54,10 +54,10 @@ def _kl_multivariatecauchy_multivariatecauchy(p, q):
 
 class PointMass2DHeavyTailedExperiment(AbstractExperiment):
     TARGET_TYPE = "wide"
-    TARGET_MEAN = np.array([3.5, 0.5])
+    TARGET_MEAN = np.array([3.5, 0.5])  # *0.375 for pos 3. with width 8.
     TARGET_VARIANCES = {
         "narrow": np.square(np.diag([1e-4, 1e-4])),
-        "wide": np.square(np.diag([.7, .5])),
+        "wide": np.square(np.diag([.7, .5])),  # .5 for width 8.
     }
 
     LOWER_CONTEXT_BOUNDS = np.array([-ContextualPointMass.ROOM_WIDTH/2, 0.5])
@@ -88,13 +88,13 @@ class PointMass2DHeavyTailedExperiment(AbstractExperiment):
     STD_LOWER_BOUND = np.array([0.2, 0.1875])
     KL_THRESHOLD = 8000.
     KL_EPS = 0.25
-    DELTA = 4.0 
+    DELTA = 4.0  # 3.0  # 4.0
     METRIC_EPS = 0.5
     EP_PER_UPDATE = 30
 
     # CEMGaussian
     EP_PER_AUX_UPDATE = 20  # 10  # 15
-    RALPH_IN = 1.0  # initial reference alpha
+    RALPH_IN = 0.2  # initial reference alpha
     RALPH = 0.2  # final reference alpha
     RALPH_SCH = 20  # num steps for linear schedule to reach final reference alpha
     INT_ALPHA = 0.5  # internal alpha
@@ -107,9 +107,9 @@ class PointMass2DHeavyTailedExperiment(AbstractExperiment):
                 self.RALPH_SCH * risk_level_schedule_factor)
         return max(self.RALPH, alpha_cand)
 
-    NUM_ITER = 300 
-    STEPS_PER_ITER = 6144
-    DISCOUNT_FACTOR = 0.95
+    NUM_ITER = 300  # 200
+    STEPS_PER_ITER = 6144  # 9216  # 6144  # 4096
+    DISCOUNT_FACTOR = 0.95  # 0.99
     LAM = 0.99
 
     # ACL Parameters [found after search over [0.05, 0.1, 0.2] x [0.01, 0.025, 0.05]]

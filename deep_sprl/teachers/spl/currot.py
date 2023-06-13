@@ -255,7 +255,7 @@ class WassersteinSuccessBuffer(AbstractSuccessBuffer):
                 # We replace the unsuccessful samples by the successful ones
                 if n_new < np.sum(remove_mask):
                     remove_idxs = np.argpartition(self.returns, kth=n_new)[:n_new]
-                    remove_mask = np.zeros(self.returns.shape[0], dtype=np.bool)
+                    remove_mask = np.zeros(self.returns.shape[0], dtype=bool)
                     remove_mask[remove_idxs] = True
 
                 new_returns = np.concatenate((returns[mask], self.returns[~remove_mask]), axis=0)
