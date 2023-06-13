@@ -88,55 +88,71 @@ def plot_results(base_log_dir, num_updates_per_iteration, seeds, env, setting, a
     ax.xaxis.grid(True)
     ax.set(ylabel="Discounted Return", xlabel="Algorithm")
     sns.despine(trim=True, left=True)
-    # pairs = list(comb for comb in combinations(ord_labels, r=2) if "RACGEN" in comb)
-    # # pairs = list(comb for comb in combinations(ord_labels, r=2))
-    # annotator = Annotator(ax, pairs, data=df_all, x="algorithm", y="return", order=ord_labels)
-    # annotator.configure(test="t-test_welch", loc='outside')
-    # annotator.configure(
-    #     # test="Mann-Whitney",
-    #     test="t-test_welch",
-    #     loc='outside',
-    #     text_format="star",
-    #     line_height=0.01,
-    #     fontsize="small",
-    #     # pvalue_thresholds=[[0.0001, '****'], [0.001, '***'], [0.01, '**'], [0.05, '*'], [1, 'ns']],
-    # )
-    # print(annotator.get_configuration())
-    # annotator.apply_and_annotate()
+    pairs = list(comb for comb in combinations(ord_labels, r=2) if "RAC\nGEN" in comb)
+    # pairs = list(comb for comb in combinations(ord_labels, r=2))
+    annotator = Annotator(ax, pairs, data=df_all, x="algorithm", y="return", order=ord_labels)
+    annotator.configure(test="t-test_welch", loc='outside')
+    annotator.configure(
+        # test="Mann-Whitney",
+        test="t-test_welch",
+        loc='outside',
+        text_format="star",
+        line_height=0.01,
+        fontsize="small",
+        # pvalue_thresholds=[[0.0001, '****'], [0.001, '***'], [0.01, '**'], [0.05, '*'], [1, 'ns']],
+    )
+    print(annotator.get_configuration())
+    annotator.apply_and_annotate()
     plt.savefig(f"{Path(os.getcwd()).parent}\\figures\\{env}_{figname}{figname_extra}_stat_med.pdf", dpi=500,
                 bbox_inches='tight')
+    
+    # print('Median values')
+    # print(df_med.groupby(["algorithm"])["return"].median().sort_values(ascending=False))
+    # print('1st quartile')
+    # print(df_med.groupby(["algorithm"])["return"].quantile(0.25).sort_values(ascending=False))
+    # print('3rd quartile')
+    # print(df_med.groupby(["algorithm"])["return"].quantile(0.75).sort_values(ascending=False))
 
     f, ax = plt.subplots(figsize=figsize)
     sns.boxplot(data=df_all, x="algorithm", y="return", order=ord_labels, palette=color_palette)
     ax.xaxis.grid(True)
     ax.set(ylabel="Discounted Return", xlabel="Algorithm")
     sns.despine(trim=True, left=True)
-    # pairs = list(comb for comb in combinations(ord_labels, r=2) if "RACGEN" in comb)
-    # # pairs = list(comb for comb in combinations(ord_labels, r=2))
-    # annotator = Annotator(ax, pairs, data=df_all, x="algorithm", y="return", order=ord_labels)
-    # annotator.configure(test="t-test_welch", loc='outside')
-    # annotator.configure(
-    #     # test="Mann-Whitney",
-    #     test="t-test_welch",
-    #     loc='outside',
-    #     text_format="star",
-    #     line_height=0.01,
-    #     fontsize="small",
-    #     # pvalue_thresholds=[[0.0001, '****'], [0.001, '***'], [0.01, '**'], [0.05, '*'], [1, 'ns']],
-    # )
-    # print(annotator.get_configuration())
-    # annotator.apply_and_annotate()
+    # plt.show()
+    pairs = list(comb for comb in combinations(ord_labels, r=2) if "RAC\nGEN" in comb)
+    # pairs = list(comb for comb in combinations(ord_labels, r=2))
+    annotator = Annotator(ax, pairs, data=df_all, x="algorithm", y="return", order=ord_labels)
+    annotator.configure(test="t-test_welch", loc='outside')
+    annotator.configure(
+        # test="Mann-Whitney",
+        test="t-test_welch",
+        loc='outside',
+        text_format="star",
+        line_height=0.01,
+        fontsize="small",
+        # pvalue_thresholds=[[0.0001, '****'], [0.001, '***'], [0.01, '**'], [0.05, '*'], [1, 'ns']],
+    )
+    print(annotator.get_configuration())
+    annotator.apply_and_annotate()
     plt.savefig(f"{Path(os.getcwd()).parent}\\figures\\{env}_{figname}{figname_extra}_stat_all.pdf", dpi=500,
                 bbox_inches='tight')
 
+    # print('*********** ALL ************')
+    # print('Median values')
+    # print(df_all.groupby(["algorithm"])["return"].median().sort_values(ascending=False))
+    # print('1st quartile')
+    # print(df_all.groupby(["algorithm"])["return"].quantile(0.25).sort_values(ascending=False))
+    # print('3rd quartile')
+    # print(df_all.groupby(["algorithm"])["return"].quantile(0.75).sort_values(ascending=False))
+
 def main():
     base_log_dir = f"{Path(os.getcwd()).parent}\\logs"
-    num_updates_per_iteration = 10
-    seeds = [1, 2, 3, 5, 6]
-    env = "lunar_lander_2d_heavytailed_wide"
-    # num_updates_per_iteration = 5
-    # seeds = [str(i) for i in range(1, 11)]
-    # env = "point_mass_2d_heavytailed_wide"
+    # num_updates_per_iteration = 10
+    # seeds = [1, 2, 3, 5, 6]
+    # env = "lunar_lander_2d_heavytailed_wide"
+    num_updates_per_iteration = 5
+    seeds = [str(i) for i in range(1, 11)]
+    env = "point_mass_2d_heavytailed_wide"
     figname_extra = "_expected_new"
 
     algorithms = {

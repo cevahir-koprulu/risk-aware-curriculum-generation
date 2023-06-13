@@ -45,6 +45,7 @@ def plot_results(base_log_dir, num_updates_per_iteration, seeds, env, setting, a
 
     fig = plt.figure(constrained_layout=True, figsize=figsize)
     alg_exp_mid = {}
+    racgen_returns = None
     for cur_algo in algorithms:
         algorithm = algorithms[cur_algo]["algorithm"]
         label = algorithms[cur_algo]["label"]
@@ -87,15 +88,30 @@ def plot_results(base_log_dir, num_updates_per_iteration, seeds, env, setting, a
         # plt.fill_between(intervals, fractions_qlow, fractions_qhigh, color=color, alpha=0.4)
         # axes[context_dim].fill_between(intervals, fractions_low, fractions_high, color=color, alpha=0.2)
 
+        print(cur_algo)
+        if cur_algo == "RACGEN":
+            racgen_returns = np.copy(fractions_mid)
+
     # To DO: Set x ticks!
     # plt.ticklabel_format(axis='x', style='sci', scilimits=(5, 6), useMathText=True)
     if xticks is not None:
         plt.xticks(xticks)
     if yticks is not None:
         plt.yticks(yticks)
+    else:
+        yticks = []
+        print(racgen_returns)
+        print(xticks)
+        # xticks[4] += 1
+        for xtick in xticks:
+            xtick_i = int((xtick-min_return)//interval)
+            print(f"xtick: {xtick} || min_return: {min_return} || interval: {interval} || xtick_i: {xtick_i}")
+            yticks.append(racgen_returns[xtick_i])
+        plt.yticks(yticks, fontsize=fontsize*0.75)
+
     plt.xlim([intervals[0], intervals[-1]])
     plt.ylim([-0.05,1.05])
-    plt.ylabel(r"Fraction of runs with return $>\mathbf{r}$")
+    plt.ylabel(r"Fraction of contexts with return $>\mathbf{r}$")
     plt.xlabel(r"Return $(\mathbf{r})$")
     plt.grid(True)
 
@@ -129,12 +145,12 @@ def plot_results(base_log_dir, num_updates_per_iteration, seeds, env, setting, a
 
 def main():
     base_log_dir = os.path.join(Path(os.getcwd()).parent, "logs")
-    num_updates_per_iteration = 10
-    seeds = [1, 2, 3, 5, 6]
-    env = "lunar_lander_2d_heavytailed_wide"
-    # num_updates_per_iteration = 5
-    # seeds = [str(i) for i in range(1, 11)]
-    # env = "point_mass_2d_heavytailed_wide"
+    # num_updates_per_iteration = 10
+    # seeds = [1, 2, 3, 5, 6]
+    # env = "lunar_lander_2d_heavytailed_wide"
+    num_updates_per_iteration = 5
+    seeds = [str(i) for i in range(1, 11)]
+    env = "point_mass_2d_heavytailed_wide"
     figname_extra = "_fractions_noshades"
 
     algorithms = {
@@ -201,7 +217,7 @@ def main():
                 "model": "ppo_DELTA=4.0_DIST_TYPE=cauchy_KL_EPS=0.25",
                 "color": "blue",
             },
-            "RAC": {
+            "RACGEN": {
                 "algorithm": "self_paced_with_cem",
                 "label": "RACGEN",
                 "model": "ppo_DELTA=4.0_DIST_TYPE=cauchy_KL_EPS=0.25_RALPH=0.2_RALPH_IN=1.0_RALPH_SCH=20",
@@ -219,7 +235,7 @@ def main():
                 "model": "ppo_DELTA=4.0_DIST_TYPE=gaussian_KL_EPS=0.25",
                 "color": "gold",
             },
-            "RAC-N": {
+            "RACGEN-N": {
                 "algorithm": "self_paced_with_cem",
                 "label": "RACGEN-N",
                 "model": "ppo_DELTA=4.0_DIST_TYPE=gaussian_KL_EPS=0.25_RALPH=0.2_RALPH_IN=1.0_RALPH_SCH=20",
@@ -301,26 +317,26 @@ def main():
             {
                 "num_iters": 250,
                 "steps_per_iter": 10240,
-                "fontsize": 18,
+                "fontsize": 20,
                 "figsize": (10, 5),
-                "bbox_to_anchor": (.5, 1.17),
+                "bbox_to_anchor": (.5, 1.18),
                 "min_return": -100.,
                 "max_return": 100.,
                 "num_intervals": 100,
-                "xticks": [-100, -46, -30, 62, 74, 82,100],
+                "xticks": [-100, -46, -30, 62, 74, 82, 100],
                 "yticks": None, #[0.0, 1.0],
             },
         "point_mass_2d_heavytailed_wide":
             {
                 "num_iters": 300,
                 "steps_per_iter": 6144,
-                "fontsize": 16,
+                "fontsize": 18,
                 "figsize": (10, 5),
-                "bbox_to_anchor": (.5, 1.4),
+                "bbox_to_anchor": (.5, 1.18),
                 "min_return": 0.,
                 "max_return": 8.,
-                "num_intervals": 100,
-                "xticks": None,
+                "num_intervals": 80,
+                "xticks": [0, 0.3, 2.5, 4.2, 7.1, 8.0],
                 "yticks": None,
             },
     }

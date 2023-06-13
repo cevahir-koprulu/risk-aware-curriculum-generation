@@ -81,8 +81,8 @@ def plot_results(base_log_dir, num_updates_per_iteration, seeds, env, setting, a
         plt.fill_between(iterations_step, expected_qlow, expected_qhigh, color=color, alpha=0.4)
         # axes[context_dim].fill_between(iterations_step, expected_low, expected_high, color=color, alpha=0.2)
 
-    # To DO: Set x ticks!
     plt.ticklabel_format(axis='x', style='sci', scilimits=(5, 6), useMathText=True)
+    plt.xticks([])
     plt.xlim([iterations_step[0], iterations_step[-1]])
     plt.ylim(ylim)
     plt.ylabel(ylabel)
