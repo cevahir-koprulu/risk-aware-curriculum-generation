@@ -9,9 +9,6 @@ import os
 import pickle
 import time
 
-from torchquad import MonteCarlo, set_up_backend
-
-
 TORCH_DIST_DICT = {
     "gaussian": GaussianTorchDistribution,
     "cauchy": CauchyTorchDistribution,

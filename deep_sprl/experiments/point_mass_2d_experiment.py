@@ -5,7 +5,7 @@ import numpy as np
 from deep_sprl.experiments.abstract_experiment import AbstractExperiment, Learner
 from deep_sprl.teachers.alp_gmm import ALPGMM, ALPGMMWrapper
 from deep_sprl.teachers.goal_gan import GoalGAN, GoalGANWrapper
-from deep_sprl.teachers.spl import SelfPacedTeacherV2, SelfPacedWrapper, CurrOT
+from deep_sprl.teachers.spl import SelfPacedTeacherV2, SelfPacedWrapper
 from deep_sprl.teachers.dummy_teachers import UniformSampler, DistributionSampler
 from deep_sprl.teachers.dummy_wrapper import DummyWrapper
 from deep_sprl.teachers.abstract_teacher import BaseWrapper
@@ -18,12 +18,6 @@ from deep_sprl.teachers.util import Subsampler
 from scipy.stats import multivariate_normal
 
 from deep_sprl.environments.contextual_point_mass import ContextualPointMass
-
-
-def logsumexp(x):
-    xmax = np.max(x)
-    return np.log(np.sum(np.exp(x - xmax))) + xmax
-
 
 CEM_AUX_TEACHERS = {
     "gaussian": CEMGaussian,
@@ -136,7 +130,7 @@ class PointMass2DExperiment(AbstractExperiment):
                               update_size=self.GG_FIT_RATE[self.learner], n_rollouts=2, goid_lb=0.25, goid_ub=0.75,
                               p_old=self.GG_P_OLD[self.learner], pretrain_samples=samples)
             env = GoalGANWrapper(env, teacher, self.DISCOUNT_FACTOR, context_visible=True)
-        elif self.curriculum.self_paced() or self.curriculum.wasserstein():
+        elif self.curriculum.self_paced():
             teacher = self.create_self_paced_teacher(with_callback=False)
             env = SelfPacedWrapper(env, teacher, self.DISCOUNT_FACTOR, episodes_per_update=self.EP_PER_UPDATE,
                                    context_visible=True)
@@ -201,15 +195,10 @@ class PointMass2DExperiment(AbstractExperiment):
 
     def create_self_paced_teacher(self, with_callback=False):
         bounds = (self.LOWER_CONTEXT_BOUNDS.copy(), self.UPPER_CONTEXT_BOUNDS.copy())
-        if self.curriculum.self_paced() or self.curriculum.self_paced_with_cem():
-            return SelfPacedTeacherV2(self.target_log_likelihood, self.target_sampler, self.INITIAL_MEAN.copy(),
-                                      self.INITIAL_VARIANCE.copy(), bounds, self.DELTA, max_kl=self.KL_EPS,
-                                      std_lower_bound=self.STD_LOWER_BOUND.copy(), kl_threshold=self.KL_THRESHOLD,
-                                      dist_type=self.SP_DIST_TYPE)
-        else:
-            init_samples = np.random.uniform(self.LOWER_CONTEXT_BOUNDS, self.UPPER_CONTEXT_BOUNDS, size=(200, 2))
-            return CurrOT(bounds, init_samples, self.target_sampler, self.DELTA, self.METRIC_EPS, self.EP_PER_UPDATE,
-                          wb_max_reuse=1)
+        return SelfPacedTeacherV2(self.target_log_likelihood, self.target_sampler, self.INITIAL_MEAN.copy(),
+                                    self.INITIAL_VARIANCE.copy(), bounds, self.DELTA, max_kl=self.KL_EPS,
+                                    std_lower_bound=self.STD_LOWER_BOUND.copy(), kl_threshold=self.KL_THRESHOLD,
+                                    dist_type=self.SP_DIST_TYPE)
 
     def create_cem_teacher(self, dist_params=None, cem_type="gaussian"):
         if dist_params is None:

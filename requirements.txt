@@ -6,11 +6,5 @@ scipy==1.9.1
 numpy==1.23.5
 pygame==2.1.0
 gym==0.19.0
-gurobipy==9.5.0
-gpytorch==1.6.0
-pyro-ppl==1.8.3
-geomloss==0.2.4
-cython==0.29.32
-cyipopt==1.2.0
 Box2D==2.3.10
 pyglet==1.5.27

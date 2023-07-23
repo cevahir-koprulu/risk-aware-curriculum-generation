@@ -1,17 +1,17 @@
 import numpy as np
 from gym import Env
-from .contextual_bipedal_walker import ContextualBipedalWalker
+from .contextual_point_mass import ContextualPointMass
 
 
-class ContextualBipedalWalker2D(Env):
+class ContextualPointMass3D(Env):
 
-    def __init__(self, context=np.array([3., 6.])):
-        self.env = ContextualBipedalWalker(context)
+    def __init__(self, context=np.array([0., 2., 0.])):
+        self.env = ContextualPointMass(context)
         self.action_space = self.env.action_space
         self.observation_space = self.env.observation_space
 
     def set_context(self, context):
-        self.env.context = context
+        self.env.context = np.copy(context)
 
     def get_context(self):
         return self.env.context.copy()

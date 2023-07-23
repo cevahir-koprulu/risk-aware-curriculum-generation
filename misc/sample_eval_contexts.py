@@ -5,8 +5,6 @@ import math
 import numpy as np
 from deep_sprl.experiments.point_mass_2d_experiment import PointMass2DExperiment
 from deep_sprl.experiments.point_mass_2d_heavytailed_experiment import PointMass2DHeavyTailedExperiment
-from deep_sprl.experiments.bipedal_walker_2d_heavytailed_experiment import BipedalWalker2DHeavyTailedExperiment
-from deep_sprl.experiments.lunar_lander_2d_heavytailed_experiment import LunarLander2DHeavyTailedExperiment
 from pathlib import Path
 
 
@@ -35,7 +33,7 @@ def main():
     num_contexts = 100
     eval_context_dir = f"{Path(os.getcwd()).parent}/eval_contexts"
     target_type = "wide"
-    env = f"lunar_lander_2d_heavytailed_{target_type}"
+    env = f"point_mass_2d_{target_type}"
     all_contexts = True
     all_contexts_hom = False
     num_per_axis = 20
@@ -50,14 +48,6 @@ def main():
     elif env[:-len(target_type) - 1] == "point_mass_2d_heavytailed":
         exp = PointMass2DHeavyTailedExperiment(base_log_dir="logs", curriculum_name="self_paced", learner_name="ppo",
                                                parameters={"TARGET_TYPE": target_type}, seed=1, device="cpu")
-    elif env[:-len(target_type) - 1] == "bipedal_walker_2d_heavytailed":
-        exp = BipedalWalker2DHeavyTailedExperiment(base_log_dir="logs", curriculum_name="self_paced",
-                                                   learner_name="ppo", parameters={"TARGET_TYPE": target_type},
-                                                   seed=1, device="cpu")
-    elif env[:-len(target_type) - 1] == "lunar_lander_2d_heavytailed":
-        exp = LunarLander2DHeavyTailedExperiment(base_log_dir="logs", curriculum_name="self_paced",
-                                                   learner_name="ppo", parameters={"TARGET_TYPE": target_type},
-                                                   seed=1, device="cpu")
     else:
         raise ValueError("Invalid environment")
 

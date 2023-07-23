@@ -7,7 +7,8 @@ from deep_sprl.util.viewer import Viewer
 
 class ContextualPointMass(Env):
     ROOM_WIDTH = 14.  # 12.  # 20.  # 16.
-
+    MAX_FRICTION = 2.
+    
     def __init__(self, context=np.array([0., 2., 2.])):
         self.action_space = spaces.Box(np.array([-10., -10.]), np.array([10., 10.]))
         self.observation_space = spaces.Box(np.array([-self.ROOM_WIDTH/2, -np.inf, -4., -np.inf]),
