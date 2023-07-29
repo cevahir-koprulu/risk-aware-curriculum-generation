@@ -17,7 +17,7 @@ def main():
     parser.add_argument("--n_cores", type=int, default=1)
     parser.add_argument('--train', action='store_true')
     parser.add_argument('--eval', action='store_true')
-    parser.add_argument("--eval_type", type=int, default=3)
+    parser.add_argument("--eval_type", type=int, default=0)
     parser.add_argument("--device", type=str, default="cuda")
 
     args, remainder = parser.parse_known_args()

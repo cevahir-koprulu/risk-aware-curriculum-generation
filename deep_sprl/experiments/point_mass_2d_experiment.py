@@ -24,10 +24,10 @@ CEM_AUX_TEACHERS = {
     "cauchy": CEMCauchy,
 }
 
-
 class PointMass2DExperiment(AbstractExperiment):
     TARGET_TYPE = "narrow"
-    TARGET_MEAN = np.array([ContextualPointMass.ROOM_WIDTH*0.3125, 0.5])  # *0.375 for pos 3. with width 8.
+    TARGET_MEAN = np.array([ContextualPointMass.ROOM_WIDTH*0.25, 0.5])  # *0.375 for pos 3. with width 8.
+    # TARGET_MEAN = np.array([ContextualPointMass.ROOM_WIDTH*0.3125, 0.5])  # *0.375 for pos 3. with width 8.
     TARGET_VARIANCES = {
         "narrow": np.square(np.diag([1e-4, 1e-4])),
         "wide": np.square(np.diag([1., 1.])),  # .5 for width 8.
@@ -35,7 +35,6 @@ class PointMass2DExperiment(AbstractExperiment):
 
     LOWER_CONTEXT_BOUNDS = np.array([-ContextualPointMass.ROOM_WIDTH/2, 0.5])
     UPPER_CONTEXT_BOUNDS = np.array([ContextualPointMass.ROOM_WIDTH/2, ContextualPointMass.ROOM_WIDTH])
-    EXT_CONTEXT_BOUNDS = np.array([5., 5.])
 
     def target_log_likelihood(self, cs):
         return multivariate_normal.logpdf(cs, self.TARGET_MEAN, self.TARGET_VARIANCES[self.TARGET_TYPE])
@@ -73,8 +72,8 @@ class PointMass2DExperiment(AbstractExperiment):
                 self.RALPH_SCH * risk_level_schedule_factor)
         return max(self.RALPH, alpha_cand)
 
-    NUM_ITER = 400  # 200
-    STEPS_PER_ITER = 8192  # 4096  # 1024  # 2048  # 4096
+    NUM_ITER = 400 # 200
+    STEPS_PER_ITER = 2048 # 8192 # 4096 # 1024 # 4096
     DISCOUNT_FACTOR = 0.95
     LAM = 0.99
 
@@ -97,7 +96,7 @@ class PointMass2DExperiment(AbstractExperiment):
     AG_MAX_SIZE = {Learner.PPO: 500, Learner.SAC: None}
 
     GG_NOISE_LEVEL = {Learner.PPO: 0.1, Learner.SAC: None}
-    GG_FIT_RATE = {Learner.PPO: 200, Learner.SAC: None}
+    GG_FIT_RATE = {Learner.PPO: 50, Learner.SAC: None}
     GG_P_OLD = {Learner.PPO: 0.2, Learner.SAC: None}
 
     def __init__(self, base_log_dir, curriculum_name, learner_name, parameters, seed, device):
@@ -217,7 +216,7 @@ class PointMass2DExperiment(AbstractExperiment):
             raise ValueError(f"Given CEM type, {cem_type}, is not in {list(CEM_AUX_TEACHERS.keys())}.")
 
     def get_env_name(self):
-        return "point_mass_2d"
+        return f"point_mass_2d_{self.TARGET_TYPE}"
 
     def evaluate_learner(self, path, eval_type=""):
         num_context = None
@@ -225,12 +224,12 @@ class PointMass2DExperiment(AbstractExperiment):
 
         model_load_path = os.path.join(path, "model.zip")
         model = self.learner.load_for_evaluation(model_load_path, self.vec_eval_env, self.device)
-        eval_path = f"{os.getcwd()}/eval_contexts/{self.get_env_name()}_eval{eval_type}_contexts.npy"
+        eval_path = os.path.join(os.getcwd(), "eval_contexts", f"{self.get_env_name()}_eval{eval_type}_contexts.npy")
         if os.path.exists(eval_path):
             eval_contexts = np.load(eval_path)
             num_context = eval_contexts.shape[0]
         else:
-            raise ValueError(f"Invalid evaluation type: {eval_type}")
+            raise ValueError(f"Invalid evaluation path: {eval_path}")
 
         num_succ_eps_per_c = np.zeros((num_context, 1))
         for i in range(num_context):

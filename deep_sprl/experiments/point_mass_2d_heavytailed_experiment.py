@@ -34,7 +34,6 @@ class PointMass2DHeavyTailedExperiment(AbstractExperiment):
 
     LOWER_CONTEXT_BOUNDS = np.array([-ContextualPointMass.ROOM_WIDTH/2, 0.5])
     UPPER_CONTEXT_BOUNDS = np.array([ContextualPointMass.ROOM_WIDTH/2, ContextualPointMass.ROOM_WIDTH])
-    EXT_CONTEXT_BOUNDS = np.array([5., 5.])
 
     def target_log_likelihood(self, cs):
         # Student's t distribution with DoF 1 is equivalent to a Cauchy distribution
@@ -232,13 +231,12 @@ class PointMass2DHeavyTailedExperiment(AbstractExperiment):
 
         model_load_path = os.path.join(path, "model.zip")
         model = self.learner.load_for_evaluation(model_load_path, self.vec_eval_env, self.device)
-        eval_path = f"{os.getcwd()}/eval_contexts/{self.get_env_name()}_eval{eval_type}_contexts.npy"
+        eval_path = os.path.join(os.getcwd(), "eval_contexts", f"{self.get_env_name()}_eval{eval_type}_contexts.npy")
         if os.path.exists(eval_path):
             eval_contexts = np.load(eval_path)
-            if num_context is None:
-                num_context = eval_contexts.shape[0]
+            num_context = eval_contexts.shape[0]
         else:
-            raise ValueError(f"Invalid evaluation type: {eval_type}")
+            raise ValueError(f"Invalid evaluation path: {eval_path}")
 
         num_succ_eps_per_c = np.zeros((num_context, 1))
         for i in range(num_context):

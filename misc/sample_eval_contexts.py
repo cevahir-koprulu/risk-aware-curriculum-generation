@@ -30,9 +30,9 @@ def sample_contexts_hom(bounds, num_per_axis):
 
 def main():
     ##################################
-    num_contexts = 100
+    num_contexts = 10
     eval_context_dir = f"{Path(os.getcwd()).parent}/eval_contexts"
-    target_type = "wide"
+    target_type = "narrow"
     env = f"point_mass_2d_{target_type}"
     all_contexts = True
     all_contexts_hom = False
