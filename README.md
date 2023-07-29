@@ -1,12 +1,6 @@
-# Risk-aware Curriculum Generation for Heavy-tailed Task Distributions
+# Curriculum learning for reinforcement learning
 
-Cevahir Koprulu (1), Thiago D. Simão (2), Nils Jansen (2) and Ufuk Topcu (1)
-
-(1) The University of Texas at Austin
-
-(2) Radbound University Nijmegen
-
-Accepted for the 39th Conference on Uncertainty in Artificial Intelligence (UAI 2023).
+REACT-REU project
 
 Our codebase is built on the repository of _Curriculum Reinforcement Learning via Constrained Optimal Transport_ (CURROT) by Klink et al. (2022).
 
