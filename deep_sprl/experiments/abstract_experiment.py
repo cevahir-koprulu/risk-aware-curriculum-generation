@@ -22,7 +22,6 @@ class CurriculumType(Enum):
     SelfPaced = 3
     Default = 4
     Random = 5
-    Wasserstein = 7
     ACL = 8
     PLR = 9
     VDS = 10
@@ -36,8 +35,6 @@ class CurriculumType(Enum):
             return "alp_gmm"
         elif self.self_paced():
             return "self_paced"
-        elif self.wasserstein():
-            return "wasserstein"
         elif self.default():
             return "default"
         elif self.acl():
@@ -71,9 +68,6 @@ class CurriculumType(Enum):
     def default_with_cem(self):
         return self.value == CurriculumType.DefaultWithCEM.value
 
-    def wasserstein(self):
-        return self.value == CurriculumType.Wasserstein.value
-
     def random(self):
         return self.value == CurriculumType.Random.value
 
@@ -102,8 +96,6 @@ class CurriculumType(Enum):
             return CurriculumType.DefaultWithCEM
         elif string == str(CurriculumType.Random):
             return CurriculumType.Random
-        elif string == str(CurriculumType.Wasserstein):
-            return CurriculumType.Wasserstein
         elif string == str(CurriculumType.ACL):
             return CurriculumType.ACL
         elif string == str(CurriculumType.PLR):
@@ -362,7 +354,6 @@ class AbstractExperiment(ABC):
                      CurriculumType.SelfPaced: ["DELTA", "KL_EPS", "DIST_TYPE", "INIT_VAR"],
                      CurriculumType.SelfPacedWithCEM: ["DELTA", "KL_EPS", "RALPH_IN", "RALPH",
                                                        "RALPH_SCH", "DIST_TYPE", "INIT_VAR"],
-                     CurriculumType.Wasserstein: ["DELTA", "METRIC_EPS"],
                      CurriculumType.GoalGAN: ["GG_NOISE_LEVEL", "GG_FIT_RATE", "GG_P_OLD"],
                      CurriculumType.ALPGMM: ["AG_P_RAND", "AG_FIT_RATE", "AG_MAX_SIZE"],
                      CurriculumType.Random: [],

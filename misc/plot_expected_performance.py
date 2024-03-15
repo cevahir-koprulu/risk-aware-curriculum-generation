@@ -68,10 +68,6 @@ def plot_results(base_log_dir, num_updates_per_iteration, seeds, env, setting, a
         expected_qhigh = np.quantile(expected, 0.75, axis=0)
         # expected_low = np.min(expected, axis=0)
         # expected_high = np.max(expected, axis=0)
-        # expected_mid = np.mean(expected, axis=0)
-        # expected_std = np.std(expected, axis=0)
-        # expected_qlow = expected_mid-expected_std
-        # expected_qhigh = expected_mid+expected_std
 
         alg_exp_mid[cur_algo] = expected_mid[-1]
 
@@ -79,10 +75,8 @@ def plot_results(base_log_dir, num_updates_per_iteration, seeds, env, setting, a
                       marker=".",
                       )
         plt.fill_between(iterations_step, expected_qlow, expected_qhigh, color=color, alpha=0.4)
-        # axes[context_dim].fill_between(iterations_step, expected_low, expected_high, color=color, alpha=0.2)
 
     plt.ticklabel_format(axis='x', style='sci', scilimits=(5, 6), useMathText=True)
-    plt.xticks([])
     plt.xlim([iterations_step[0], iterations_step[-1]])
     plt.ylim(ylim)
     plt.ylabel(ylabel)
@@ -106,7 +100,7 @@ def plot_results(base_log_dir, num_updates_per_iteration, seeds, env, setting, a
     labels.reverse()
     lines = [Line2D([0], [0], color=colors[-i-1], linestyle=linestyles[i], marker=markers[i], linewidth=2.0)
              for i in range(num_alg)]
-    lgd = fig.legend(lines, labels, ncol=math.ceil(num_alg/3), loc="upper center", bbox_to_anchor=bbox_to_anchor,
+    lgd = fig.legend(lines, labels, ncol=math.ceil(num_alg/2), loc="upper center", bbox_to_anchor=bbox_to_anchor,
                      fontsize=fontsize, handlelength=1.0, labelspacing=0., handletextpad=0.5, columnspacing=1.0)
 
     figname = ""
@@ -115,35 +109,35 @@ def plot_results(base_log_dir, num_updates_per_iteration, seeds, env, setting, a
         if cur_algo_i < len(algorithms)-1:
             figname += "_vs_"
 
-    print(f"{Path(os.getcwd()).parent}\\figures\\{env}_{figname}{figname_extra}.pdf")
-    plt.savefig(f"{Path(os.getcwd()).parent}\\figures\\{env}_{figname}{figname_extra}.pdf", dpi=500,
-                bbox_inches='tight', bbox_extra_artists=(lgd,))
+    figpath = os.path.join(Path(os.getcwd()).parent, "figures", f"{env}_{figname}{figname_extra}.pdf")
+    print(figpath)
+    plt.savefig(figpath, dpi=500, bbox_inches='tight', bbox_extra_artists=(lgd,))
 
 
 def main():
-    base_log_dir = f"{Path(os.getcwd()).parent}\\logs"
+    base_log_dir = os.path.join(Path(os.getcwd()).parent, "logs")
+    figname_extra = "_expected_TEST"
+    num_updates_per_iteration = 5
+    seeds = [str(i) for i in range(1, 4)]
+    env = "point_mass_2d_narrow"
+
     # num_updates_per_iteration = 5
     # seeds = [str(i) for i in range(1, 11)]
     # env = "point_mass_2d_heavytailed_wide"
-
-    num_updates_per_iteration = 10
-    seeds = [1, 2, 3, 5, 6]
-    env = "lunar_lander_2d_heavytailed_wide"
-    figname_extra = "_expected_new"
-
+    
     algorithms = {
-        "lunar_lander_2d_heavytailed_wide": {
+        "point_mass_2d_narrow": {
             "SPDL": {
                 "algorithm": "self_paced",
                 "label": "SPDL",
-                "model": "ppo_DELTA=-100.0_DIST_TYPE=cauchy_KL_EPS=0.025",
+                "model": "ppo_DELTA=4.0_DIST_TYPE=gaussian_INIT_VAR=0.0_KL_EPS=0.25",
                 "color": "blue",
             },
-            "RACGEN": {
-                "algorithm": "self_paced_with_cem",
-                "label": "RACGEN",
-                "model": "ppo_DELTA=-100.0_DIST_TYPE=cauchy_KL_EPS=0.025_RALPH=0.2_RALPH_IN=1.0_RALPH_SCH=80",
-                "color": "red",
+            "PLR": {
+                "algorithm": "plr",
+                "label": "PLR",
+                "model": "ppo_PLR_BETA=0.45_PLR_REPLAY_RATE=0.85_PLR_RHO=0.15",
+                "color": "purple",
             },
             "DEF": {
                 "algorithm": "default",
@@ -151,41 +145,11 @@ def main():
                 "model": "ppo",
                 "color": "magenta",
             },
-            "DEF-CEM": {
-                "algorithm": "default_with_cem",
-                "label": "Default-CEM",
-                "model": "ppo_DIST_TYPE=cauchy_RALPH=0.2_RALPH_IN=1.0_RALPH_SCH=80",
-                "color": "maroon",
-            },
-            "CURROT": {
-                "algorithm": "wasserstein",
-                "label": "CURROT",
-                "model": "ppo_DELTA=-50.0_METRIC_EPS=0.5",
-                "color": "green",
-            },
             "GoalGAN": {
                 "algorithm": "goal_gan",
                 "label": "GoalGAN",
-                "model": "ppo_GG_FIT_RATE=200_GG_NOISE_LEVEL=0.1_GG_P_OLD=0.2",
+                "model": "ppo_GG_FIT_RATE=200_GG_NOISE_LEVEL=0.05_GG_P_OLD=0.1",
                 "color": "orange",
-            },
-            "ALP-GMM": {
-                "algorithm": "alp_gmm",
-                "label": "ALP-GMM",
-                "model": "ppo_AG_FIT_RATE=100_AG_MAX_SIZE=500_AG_P_RAND=0.1",
-                "color": "lawngreen",
-            },
-            "PLR": {
-                "algorithm": "plr",
-                "label": "PLR",
-                "model": "ppo_PLR_BETA=0.15_PLR_REPLAY_RATE=0.85_PLR_RHO=0.45",
-                "color": "purple",
-            },
-            "VDS": {
-                "algorithm": "vds",
-                "label": "VDS",
-                "model": "ppo_VDS_BATCHES=40_VDS_EPOCHS=3_VDS_LR=0.001_VDS_NQ=5",
-                "color": "darkcyan",
             },
         },
         "point_mass_2d_heavytailed_wide": {
@@ -259,15 +223,15 @@ def main():
     }
 
     settings = {
-        "lunar_lander_2d_heavytailed_wide":
+        "point_mass_2d_narrow":
             {
-                "num_iters": 250,
-                "steps_per_iter": 10240,
+                "num_iters": 400,
+                "steps_per_iter": 8192,
                 "fontsize": 24,
                 "figsize": (10, 5),
                 "bbox_to_anchor": (.5, 1.28),
                 "ylabel": 'Expected discounted return',
-                "ylim": [-125., 50.],
+                "ylim": [0., 7.],
             },
         "point_mass_2d_heavytailed_wide":
             {
